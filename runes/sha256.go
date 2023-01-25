@@ -47,6 +47,11 @@ func NewSha256() *Sha256 {
 }
 
 func (s *Sha256) Write(p []byte) (nn int, err error) {
+	/*
+		if s.len >= 64 {
+			s.len -= 64
+		}
+	*/
 	s.len += uint64(len(p))
 	return s.hasher.Write(p)
 }
@@ -102,6 +107,9 @@ func (s *Sha256) SetMidState(state *MidState) error {
 	// Critical assumption here is there are no leftover bytes
 	b = appendUint64(b, state.Len)
 
+	// Extend
+	b = b[:marshaledSize]
+
 	err := m.UnmarshalBinary(b)
 	if err != nil {
 		return err
@@ -111,31 +119,37 @@ func (s *Sha256) SetMidState(state *MidState) error {
 }
 
 func (s *Sha256) AddPadding() error {
-	len := s.len
+	l := s.len
+
 	// Padding. Add a 1 bit and 0 bits until 56 bytes mod 64.
 	var tmp [64 + 8]byte // padding + length buffer
 	tmp[0] = 0x80
 	var t uint64
-	if len%64 < 56 {
-		t = 56 - len%64
+	if l%64 < 56 {
+		t = 56 - l%64
 	} else {
-		t = 64 + 56 - len%64
+		t = 64 + 56 - l%64
 	}
 
 	// Length in bits.
-	len <<= 3
+	l <<= 3
 	padlen := tmp[:t+8]
-	binary.BigEndian.PutUint64(padlen[t+0:], len)
+	binary.BigEndian.PutUint64(padlen[t+0:], l)
+
 	_, err := s.hasher.Write(padlen)
 	if err != nil {
 		return err
 	}
 
+	s.len = 0
+
 	return nil
 }
 
 func (s *Sha256) GetSum() [OUTPUT_SIZE]byte {
-	return s.GetMidState().GetSum()
+	ret := s.GetMidState().GetSum()
+	s.len = 0
+	return ret
 }
 
 func appendUint64(b []byte, x uint64) []byte {
