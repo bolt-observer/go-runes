@@ -38,13 +38,13 @@ func knownCondition(cond string) bool {
 }
 
 // MakeAlternative returns a new Alternative
-func MakeAlternative(field string, cond string, value any, allowIdField bool) (*Alternative, error) {
+func MakeAlternative(field string, cond string, value any, allowIDField bool) (*Alternative, error) {
 	if containsPunctuation(field) {
 		return nil, fmt.Errorf("field not valid")
 	}
 
 	if field == "" {
-		if !allowIdField {
+		if !allowIDField {
 			return nil, fmt.Errorf("uniqueId field not valid here")
 		}
 		if cond != "=" {
@@ -60,7 +60,7 @@ func MakeAlternative(field string, cond string, value any, allowIdField bool) (*
 }
 
 // MakeAlternativeFromString returns a new alternativee from a string
-func MakeAlternativeFromString(str string, allowIdField bool) (*Alternative, string, error) {
+func MakeAlternativeFromString(str string, allowIDField bool) (*Alternative, string, error) {
 
 	offset := 0
 
@@ -100,7 +100,7 @@ func MakeAlternativeFromString(str string, allowIdField bool) (*Alternative, str
 		offset2++
 	}
 
-	alt, err := MakeAlternative(field, cond, sb.String(), allowIdField)
+	alt, err := MakeAlternative(field, cond, sb.String(), allowIDField)
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,8 +115,8 @@ func escape(s string) string {
 	return str
 }
 
-// IsUniqueId - is this alternative the unique id
-func (a *Alternative) IsUniqueId() bool {
+// IsUniqueID - is this alternative the unique id
+func (a *Alternative) IsUniqueID() bool {
 	return a.Field == ""
 }
 
@@ -125,9 +125,9 @@ func (a *Alternative) String() string {
 	s, ok := a.Value.(string)
 	if ok {
 		return fmt.Sprintf("%s%s%s", a.Field, a.Cond, escape(s))
-	} else {
-		return fmt.Sprintf("%s%s%v", a.Field, a.Cond, a.Value)
 	}
+
+	return fmt.Sprintf("%s%s%v", a.Field, a.Cond, a.Value)
 }
 
 // Evaluate evaluates the alternative
@@ -137,13 +137,14 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 	}
 
 	if _, ok := vals[a.Field]; !ok {
-		if a.IsUniqueId() {
-			if s, ok := a.Value.(string); !ok {
+		if a.IsUniqueID() {
+			s, ok := a.Value.(string)
+			if !ok {
 				return false, "unique id should be string"
-			} else {
-				if strings.Contains(s, "-") {
-					return false, fmt.Sprintf("unknown version %v", a.Value)
-				}
+			}
+
+			if strings.Contains(s, "-") {
+				return false, fmt.Sprintf("unknown version %v", a.Value)
 			}
 		}
 		if a.Cond != "!" {
@@ -158,16 +159,14 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 		ret, err := isEqual(vals[a.Field], a.Value)
 		if ret && err == nil {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("!= %s", a.Value)
 		}
+		return false, fmt.Sprintf("!= %s", a.Value)
 	case "/":
 		ret, err := isEqual(vals[a.Field], a.Value)
 		if !ret && err == nil {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("= %s", a.Value)
 		}
+		return false, fmt.Sprintf("= %s", a.Value)
 	case "^":
 		// starts with
 		val := fmt.Sprintf("%v", a.Value)
@@ -175,9 +174,8 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 
 		if strings.HasPrefix(entry, val) {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("does not start with %s", val)
 		}
+		return false, fmt.Sprintf("does not start with %s", val)
 	case "$":
 		// ends with
 		val := fmt.Sprintf("%v", a.Value)
@@ -185,9 +183,8 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 
 		if strings.HasSuffix(entry, val) {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("does not end with %s", val)
 		}
+		return false, fmt.Sprintf("does not end with %s", val)
 	case "~":
 		// contains
 		val := fmt.Sprintf("%v", a.Value)
@@ -195,40 +192,35 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 
 		if strings.Contains(entry, val) {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("does not contain %s", val)
 		}
+		return false, fmt.Sprintf("does not contain %s", val)
 	case "<":
 		ret, err := isLower(vals[a.Field], a.Value)
-		if ret && err != nil {
+		if ret && err == nil {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf(">= %v", a.Value)
 		}
+		return false, fmt.Sprintf(">= %v", a.Value)
 	case ">":
 		ret, err := isHigher(vals[a.Field], a.Value)
-		if ret && err != nil {
+		if ret && err == nil {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("<= %v", a.Value)
 		}
+		return false, fmt.Sprintf("<= %v", a.Value)
 	case "{":
 		ret := lexoCmp(vals[a.Field], a.Value)
 		if ret < 0 {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("is the same or ordered after %v", vals[a.Field])
 		}
+		return false, fmt.Sprintf("is the same or ordered after %v", vals[a.Field])
 	case "}":
 		ret := lexoCmp(vals[a.Field], a.Value)
 		if ret > 0 {
 			return true, ""
-		} else {
-			return false, fmt.Sprintf("is the same or ordered before %v", vals[a.Field])
 		}
+		return false, fmt.Sprintf("is the same or ordered before %v", vals[a.Field])
+	default:
+		return false, fmt.Sprintf("unhandled case: %v", a.Cond)
 	}
-
-	return false, ""
 }
 
 func isPunct(r rune) bool {

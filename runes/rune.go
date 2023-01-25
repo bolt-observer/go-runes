@@ -57,7 +57,7 @@ func MakeRune(authbase []byte, uniqueid, version any, restrictions []Restriction
 	}
 
 	if uniqueid != nil {
-		u, err := UniqueId(uniqueid, version)
+		u, err := UniqueID(uniqueid, version)
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +116,7 @@ func (r *Rune) Evaluate(vals map[string]any) (bool, string) {
 	return true, ""
 }
 
+// String returns a string representation of rune
 func (r *Rune) String() string {
 	rest := make([]string, 0, len(r.Restrictions))
 	for _, one := range r.Restrictions {
@@ -125,6 +126,7 @@ func (r *Rune) String() string {
 	return hex.EncodeToString(r.GetAuthCode()) + ":" + strings.Join(rest, "&")
 }
 
+// ToBase64 returns the base64 encoded representation of rune
 func (r *Rune) ToBase64() string {
 	rest := make([]string, 0, len(r.Restrictions))
 	for _, one := range r.Restrictions {
@@ -155,9 +157,9 @@ func FromString(str string) (*Rune, error) {
 
 	var restriction *Restriction
 	for len(rest) > 0 {
-		allowIdField := len(restrictions) == 0
+		allowIDField := len(restrictions) == 0
 
-		restriction, rest, err = MakeRestrictionFromString(rest, allowIdField)
+		restriction, rest, err = MakeRestrictionFromString(rest, allowIDField)
 		if err != nil {
 			return nil, err
 		}
@@ -176,4 +178,29 @@ func FromBase64(str string) (*Rune, error) {
 	}
 
 	return FromString(hex.EncodeToString(data[:32]) + ":" + string(data[32:]))
+}
+
+// GetRestricted obtains a restricted rune
+func (r *Rune) GetRestricted(restrictions ...*Restriction) (*Rune, error) {
+	rune, err := MakeRune(r.GetAuthCode(), nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	rune.Restrictions = r.Restrictions
+
+	for _, r := range restrictions {
+		rune.AddRestriction(*r)
+	}
+
+	return rune, nil
+}
+
+// Check checks rune
+func (r *Rune) Check(rune *Rune, vals map[string]any) error {
+	ok, msg := rune.Evaluate(vals)
+	if ok {
+		return nil
+	}
+
+	return fmt.Errorf(msg)
 }

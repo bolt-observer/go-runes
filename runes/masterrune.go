@@ -3,10 +3,16 @@ package runes
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 )
 
 var (
+	// ErrTooLongSecret represents an error where secret was too long
 	ErrTooLongSecret = errors.New("too long secret")
+	// ErrTooShortSecret represents an error where secret was too short
+	ErrTooShortSecret = errors.New("too short secret")
+	// ErrUnauthorizedRune represents an error where rune was not authorized
+	ErrUnauthorizedRune = errors.New("unauthorized rune")
 )
 
 // MasterRune struct
@@ -15,10 +21,22 @@ type MasterRune struct {
 	Rune
 }
 
+// MustMakeMasterRune is a helper constructor for creating a master rune
+func MustMakeMasterRune(seedsecret []byte) MasterRune {
+	rune, err := MakeMasterRune(seedsecret, nil, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	return *rune
+}
+
 // MakeMasterRune creates a new master rune
 func MakeMasterRune(seedsecret []byte, uniqueid, version any, restrictions []Restriction) (*MasterRune, error) {
 	if len(seedsecret)+1+8 > 64 {
 		return nil, ErrTooLongSecret
+	}
+	if len(seedsecret) < 1 {
+		return nil, ErrTooShortSecret
 	}
 
 	if restrictions == nil {
@@ -33,7 +51,7 @@ func MakeMasterRune(seedsecret []byte, uniqueid, version any, restrictions []Res
 	ret.Sha256.AddPadding()
 
 	if uniqueid != nil {
-		u, err := UniqueId(uniqueid, version)
+		u, err := UniqueID(uniqueid, version)
 		if err != nil {
 			return nil, err
 		}
@@ -47,20 +65,7 @@ func MakeMasterRune(seedsecret []byte, uniqueid, version any, restrictions []Res
 	return ret, nil
 }
 
-// GetRestricted obtains a restricted rune
-func (r *MasterRune) GetRestricted(restrictions ...*Restriction) (*Rune, error) {
-	rune, err := MakeRune(r.GetAuthCode(), nil, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range restrictions {
-		rune.AddRestriction(*r)
-	}
-
-	return rune, nil
-}
-
+// IsRuneAuthorized check whether rune is authorized
 func (r *MasterRune) IsRuneAuthorized(other *Rune) bool {
 	hasher := NewSha256()
 	hasher.Write([]byte(r.SeedSecret))
@@ -76,6 +81,16 @@ func (r *MasterRune) IsRuneAuthorized(other *Rune) bool {
 	return hex.EncodeToString(sum[:]) == hex.EncodeToString(other.GetAuthCode())
 }
 
-func (r *MasterRune) Evaluate(vals map[string]any) (bool, string) {
-	return r.Rune.Evaluate(vals)
+// Check checks rune
+func (r *MasterRune) Check(rune *Rune, vals map[string]any) error {
+	if !r.IsRuneAuthorized(rune) {
+		return ErrUnauthorizedRune
+	}
+
+	ok, msg := rune.Evaluate(vals)
+	if ok {
+		return nil
+	}
+
+	return fmt.Errorf(msg)
 }

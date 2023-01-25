@@ -45,3 +45,14 @@ func TestSubstring(t *testing.T) {
 	eval, _ = resp.Evaluate(map[string]any{"burek": "sirni burek"})
 	assert.NotEqual(t, true, eval)
 }
+
+func TestEqual(t *testing.T) {
+	resp, err := MakeAlternative("burek", "=", 3, false)
+	assert.NoError(t, err)
+
+	eval, _ := resp.Evaluate(map[string]any{"burek": "3"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"burek": "4"})
+	assert.Equal(t, false, eval)
+}

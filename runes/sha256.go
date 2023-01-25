@@ -10,30 +10,35 @@ import (
 // The purpose of all this is to extract (and be able to set) SHA-256 midstates
 
 const (
-	// The size of a chunk in bytes.
-	CHUNK_SIZE = 64
-	// The size of a SHA256 checksum in bytes.
-	OUTPUT_SIZE = 32
-	MAGIC256    = "sha\x03"
+	// ChunkSize is chunk size in bytes
+	ChunkSize = 64
+	// OutputSize is size of SHA256 checksum in bytes.
+	OutputSize = 32
+	// Magic256 is the magic for SHA256
+	Magic256 = "sha\x03"
 )
 
+// Sha256 struct
 type Sha256 struct {
 	hasher hash.Hash
 	len    uint64
 }
 
+// Marshaller is the interface for marshalling
 type Marshaller interface {
 	UnmarshalBinary([]byte) error
 	MarshalBinary() ([]byte, error)
 }
 
+// MidState struct
 type MidState struct {
 	H   [8]uint32
 	Len uint64
 }
 
-func (state *MidState) GetSum() [OUTPUT_SIZE]byte {
-	var digest [OUTPUT_SIZE]byte
+// GetSum gets SHA-256 hash
+func (state *MidState) GetSum() [OutputSize]byte {
+	var digest [OutputSize]byte
 
 	for i := 0; i < 8; i++ {
 		binary.BigEndian.PutUint32(digest[i*4:], state.H[i])
@@ -42,25 +47,24 @@ func (state *MidState) GetSum() [OUTPUT_SIZE]byte {
 	return digest
 }
 
+// NewSha256 - construct new instance
 func NewSha256() *Sha256 {
 	return &Sha256{hasher: sha256.New(), len: uint64(0)}
 }
 
+// Write - add bytes
 func (s *Sha256) Write(p []byte) (nn int, err error) {
-	/*
-		if s.len >= 64 {
-			s.len -= 64
-		}
-	*/
 	s.len += uint64(len(p))
 	return s.hasher.Write(p)
 }
 
+// Reset - reset instance
 func (s *Sha256) Reset() {
 	s.len = uint64(0)
 	s.hasher.Reset()
 }
 
+// GetMidState - get the internal state
 func (s *Sha256) GetMidState() *MidState {
 	m := s.hasher.(Marshaller)
 	if m == nil {
@@ -73,7 +77,7 @@ func (s *Sha256) GetMidState() *MidState {
 
 	ret := &MidState{}
 
-	b = b[len(MAGIC256):]
+	b = b[len(Magic256):]
 	for i := 0; i < 8; i++ {
 		b, ret.H[i] = consumeUint32(b)
 	}
@@ -84,6 +88,7 @@ func (s *Sha256) GetMidState() *MidState {
 	return ret
 }
 
+// SetMidState - updates internal state
 func (s *Sha256) SetMidState(state *MidState) error {
 	if state == nil {
 		return os.ErrInvalid
@@ -96,9 +101,9 @@ func (s *Sha256) SetMidState(state *MidState) error {
 
 	s.Reset()
 
-	marshaledSize := len(MAGIC256) + 8*4 + CHUNK_SIZE + 8
+	marshaledSize := len(Magic256) + 8*4 + ChunkSize + 8
 	b := make([]byte, 0, marshaledSize)
-	b = append(b, MAGIC256...)
+	b = append(b, Magic256...)
 
 	for i := 0; i < 8; i++ {
 		b = appendUint32(b, state.H[i])
@@ -118,6 +123,7 @@ func (s *Sha256) SetMidState(state *MidState) error {
 	return nil
 }
 
+// AddPadding adds necessary padding at the end of a chunk
 func (s *Sha256) AddPadding() error {
 	l := s.len
 
@@ -146,7 +152,8 @@ func (s *Sha256) AddPadding() error {
 	return nil
 }
 
-func (s *Sha256) GetSum() [OUTPUT_SIZE]byte {
+// GetSum returns the SHA-256 hash
+func (s *Sha256) GetSum() [OutputSize]byte {
 	ret := s.GetMidState().GetSum()
 	s.len = 0
 	return ret

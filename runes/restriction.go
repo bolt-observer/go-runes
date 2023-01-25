@@ -36,23 +36,25 @@ func (r *Restriction) Evaluate(vals map[string]any) (bool, string) {
 	reasons := make([]string, 0)
 	for _, one := range r.Alternatives {
 		b, s := one.Evaluate(vals)
-		if b {
-			return true, ""
-		} else {
+		if !b {
 			reasons = append(reasons, s)
 		}
+	}
+
+	if len(reasons) == 0 {
+		return true, ""
 	}
 
 	return false, strings.Join(reasons, " AND ")
 }
 
 // MakeRestrictionFromString returns a new restriction from a string
-func MakeRestrictionFromString(str string, allowIdField bool) (*Restriction, string, error) {
+func MakeRestrictionFromString(str string, allowIDField bool) (*Restriction, string, error) {
 
 	alternatives := make([]Alternative, 0)
 
 	s := strings.TrimSpace(str)
-	allowId := allowIdField
+	allowID := allowIDField
 	afterRestriction := ""
 
 	for {
@@ -60,7 +62,7 @@ func MakeRestrictionFromString(str string, allowIdField bool) (*Restriction, str
 			afterRestriction = s[1:]
 			break
 		}
-		alt, rest, err := MakeAlternativeFromString(s, allowId)
+		alt, rest, err := MakeAlternativeFromString(s, allowID)
 		if err != nil {
 			return nil, "", err
 		}
@@ -71,10 +73,10 @@ func MakeRestrictionFromString(str string, allowIdField bool) (*Restriction, str
 		if len(s) < 1 {
 			break
 		}
-		allowId = false
+		allowID = false
 	}
 
-	if len(alternatives) > 1 && alternatives[0].IsUniqueId() {
+	if len(alternatives) > 1 && alternatives[0].IsUniqueID() {
 		return nil, "", fmt.Errorf("unique_id field cannot have alternatives")
 	}
 
@@ -82,13 +84,13 @@ func MakeRestrictionFromString(str string, allowIdField bool) (*Restriction, str
 	return ret, afterRestriction, err
 }
 
-// UniqueId is a helper method to create an unique id restriction
-func UniqueId(uniqueId any, version any) (*Restriction, error) {
-	if uniqueId == nil {
+// UniqueID is a helper method to create an unique id restriction
+func UniqueID(uniqueID any, version any) (*Restriction, error) {
+	if uniqueID == nil {
 		return nil, fmt.Errorf("nil unique_id")
 	}
 
-	id := fmt.Sprintf("%v", uniqueId)
+	id := fmt.Sprintf("%v", uniqueID)
 	if strings.Contains(id, "-") {
 		return nil, fmt.Errorf("hyphen not allowed in unique_id %s", id)
 	}
