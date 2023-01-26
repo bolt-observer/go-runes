@@ -45,16 +45,19 @@ func MakeRune(authbase []byte, uniqueid, version any, restrictions []Restriction
 		Restrictions: rest,
 	}
 
-	/* Authcode is always 64 bytes */
+	if len(authbase) != 32 {
+		return nil, fmt.Errorf("invalid authbase length %d", len(authbase))
+	}
+
 	midState := &MidState{}
 	for i := 0; i < 8; i++ {
 		authbase, midState.H[i] = consumeUint32(authbase)
 	}
-	midState.Len = 64
 	err := ret.Sha256.SetMidState(midState)
 	if err != nil {
 		return nil, err
 	}
+	ret.Sha256.SetLen(64)
 
 	if uniqueid != nil {
 		u, err := UniqueID(uniqueid, version)
@@ -88,16 +91,12 @@ func FromAuthCode(authcode []byte, restrictions []Restriction) (*Rune, error) {
 		return nil, err
 	}
 
-	runelength := ret.Sha256.GetMidState().Len
-
+	runelength := ret.Sha256.GetLen()
 	for _, r := range restrictions {
 		runelength += uint64(len(r.String()))
 		runelength += padLen(runelength)
 	}
-
-	midState := ret.Sha256.GetMidState()
-	midState.Len = runelength
-	ret.Sha256.SetMidState(midState)
+	ret.Sha256.SetLen(runelength)
 
 	ret.Restrictions = restrictions
 
@@ -128,6 +127,11 @@ func (r *Rune) String() string {
 
 // ToBase64 returns the base64 encoded representation of rune
 func (r *Rune) ToBase64() string {
+	return r.ToBase64Internal(true)
+}
+
+// ToBase64Internal returns the base64 encoded representation of rune
+func (r *Rune) ToBase64Internal(trim bool) string {
 	rest := make([]string, 0, len(r.Restrictions))
 	for _, one := range r.Restrictions {
 		rest = append(rest, one.String())
@@ -138,7 +142,21 @@ func (r *Rune) ToBase64() string {
 	b.Write(r.GetAuthCode())
 	b.WriteString(s)
 
-	return base64.URLEncoding.EncodeToString(b.Bytes())
+	ret := base64.URLEncoding.EncodeToString(b.Bytes())
+	if trim {
+		ret = strings.TrimRight(ret, "=")
+	}
+
+	return ret
+}
+
+// MustGetFromString returns a new rune from string representation
+func MustGetFromString(str string) Rune {
+	ret, err := FromString(str)
+	if err != nil {
+		panic(err)
+	}
+	return *ret
 }
 
 // FromString returns a new rune from string representation
@@ -170,9 +188,22 @@ func FromString(str string) (*Rune, error) {
 	return FromAuthCode(authcode, restrictions)
 }
 
+// MustGetFromBase64 returns a new rune from base64 representation
+func MustGetFromBase64(str string) Rune {
+	ret, err := FromBase64(str)
+	if err != nil {
+		panic(err)
+	}
+
+	return *ret
+}
+
 // FromBase64 returns a new rune from base64 encoded string representation
 func FromBase64(str string) (*Rune, error) {
-	data, err := base64.URLEncoding.DecodeString(str)
+	str = strings.TrimRight(str, "=")
+	addendum := strings.Repeat("=", (4-(len(str)%4))%4)
+
+	data, err := base64.URLEncoding.DecodeString(str + addendum)
 	if err != nil {
 		return nil, err
 	}
@@ -181,23 +212,33 @@ func FromBase64(str string) (*Rune, error) {
 }
 
 // GetRestricted obtains a restricted rune
-func (r *Rune) GetRestricted(restrictions ...*Restriction) (*Rune, error) {
-	rune, err := MakeRune(r.GetAuthCode(), nil, nil, nil)
+func (r *Rune) GetRestricted(restrictions ...Restriction) (*Rune, error) {
+	//rune, err := MakeRune(r.GetAuthCode(), nil, nil, nil)
+	rune, err := FromAuthCode(r.GetAuthCode(), r.Restrictions)
 	if err != nil {
 		return nil, err
 	}
-	rune.Restrictions = r.Restrictions
 
 	for _, r := range restrictions {
-		rune.AddRestriction(*r)
+		rune.AddRestriction(r)
 	}
 
 	return rune, nil
 }
 
+// MustGetRestrictedFromString obtains a restricted rune
+func (r *Rune) MustGetRestrictedFromString(str string) Rune {
+	ret, err := r.GetRestricted(MustMakeRestrictionsFromString(str)...)
+	if err != nil {
+		panic(err)
+	}
+
+	return *ret
+}
+
 // Check checks rune
-func (r *Rune) Check(rune *Rune, vals map[string]any) error {
-	ok, msg := rune.Evaluate(vals)
+func (r *Rune) Check(vals map[string]any) error {
+	ok, msg := r.Evaluate(vals)
 	if ok {
 		return nil
 	}

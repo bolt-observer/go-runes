@@ -51,7 +51,7 @@ func TestHashChanges(t *testing.T) {
 	assert.Equal(t, zeros, result1)
 
 	// Write does not change hash (until size < 64)
-	x.Write([]byte("burek"))
+	x.Write([]byte("bur"))
 	b = x.GetSum()
 	result2 := hex.EncodeToString(b[:])
 	assert.Equal(t, zeros, result2)

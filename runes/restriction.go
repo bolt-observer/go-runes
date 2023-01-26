@@ -38,11 +38,9 @@ func (r *Restriction) Evaluate(vals map[string]any) (bool, string) {
 		b, s := one.Evaluate(vals)
 		if !b {
 			reasons = append(reasons, s)
+		} else {
+			return true, ""
 		}
-	}
-
-	if len(reasons) == 0 {
-		return true, ""
 	}
 
 	return false, strings.Join(reasons, " AND ")
@@ -98,9 +96,8 @@ func UniqueID(uniqueID any, version any) (*Restriction, error) {
 	ver := ""
 	if version != nil {
 		ver = fmt.Sprintf("%v", version)
+		id += fmt.Sprintf("-%s", ver)
 	}
-
-	id += fmt.Sprintf("-%s", ver)
 
 	alt, err := MakeAlternative("", "=", id, true)
 	if err != nil {
@@ -111,4 +108,34 @@ func UniqueID(uniqueID any, version any) (*Restriction, error) {
 		Alternatives: []Alternative{
 			*alt,
 		}}, nil
+}
+
+// MakeRestrictionsFromString creates restrictionn from string representation
+func MakeRestrictionsFromString(str string) ([]Restriction, error) {
+	var err error
+	rest := str
+	restrictions := make([]Restriction, 0)
+
+	var restriction *Restriction
+	for len(rest) > 0 {
+		allowIDField := len(restrictions) == 0
+
+		restriction, rest, err = MakeRestrictionFromString(rest, allowIDField)
+		if err != nil {
+			return nil, err
+		}
+
+		restrictions = append(restrictions, *restriction)
+	}
+
+	return restrictions, nil
+}
+
+// MustMakeRestrictionsFromString creates restrictionn from string representation
+func MustMakeRestrictionsFromString(str string) []Restriction {
+	ret, err := MakeRestrictionsFromString(str)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }

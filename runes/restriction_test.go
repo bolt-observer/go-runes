@@ -33,7 +33,7 @@ func TestTwoRestrictions(t *testing.T) {
 	assert.Equal(t, true, eval)
 
 	eval, _ = resp.Evaluate(map[string]any{"burek": "3", "mesni": 2})
-	assert.Equal(t, false, eval)
+	assert.Equal(t, true, eval)
 }
 
 func TestTwoRestrictionsMixedFail(t *testing.T) {
@@ -46,10 +46,10 @@ func TestTwoRestrictionsMixedFail(t *testing.T) {
 	assert.NoError(t, err)
 
 	eval, _ := resp.Evaluate(map[string]any{"burek": "4", "mesni": 1})
-	assert.Equal(t, false, eval)
+	assert.Equal(t, true, eval)
 
 	eval, _ = resp.Evaluate(map[string]any{"burek": "3", "mesni": 2})
-	assert.Equal(t, false, eval)
+	assert.Equal(t, true, eval)
 
 	eval, _ = resp.Evaluate(map[string]any{"burek": "3", "mesni": "1"})
 	assert.Equal(t, true, eval)

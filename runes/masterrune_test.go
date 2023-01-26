@@ -54,7 +54,7 @@ func TestIsRuneAuthorized(t *testing.T) {
 	// Simple case
 	r, _, err := MakeRestrictionFromString("burek=3", false)
 	assert.NoError(t, err)
-	restricted, err := rune.GetRestricted(r)
+	restricted, err := rune.GetRestricted(*r)
 	assert.NoError(t, err)
 	assert.Equal(t, true, rune.IsRuneAuthorized(restricted))
 
@@ -68,7 +68,7 @@ func TestIsRuneAuthorized(t *testing.T) {
 	// Further restricting restricted rune works
 	r, _, err = MakeRestrictionFromString("mesni{2", false)
 	assert.NoError(t, err)
-	restricted2, err := restricted.GetRestricted(r)
+	restricted2, err := restricted.GetRestricted(*r)
 	assert.NoError(t, err)
 	s = restricted2.String()
 	assert.Equal(t, true, rune.IsRuneAuthorized(restricted2))
@@ -88,6 +88,18 @@ func TestIsRuneAuthorized(t *testing.T) {
 	assert.Error(t, err)
 
 	// But still works for correct ones
-	err = rune.Check(restricted2, map[string]any{"burek": 3, "mesni": 1})
+	err = rune.Check(restricted2, map[string]any{"burek": 3.0, "mesni": 1})
 	assert.NoError(t, err)
+}
+
+func TestRealRune(t *testing.T) {
+	rune, err := FromBase64("EMXekLFLz2z-I7bEOBkfQmR5bR_V78iaf-L-LeFu8Mc9MA")
+	assert.NoError(t, err)
+
+	restricted, err := FromBase64("uxzKjgrPj6rwr0ySqNP--p2ggNmnb7URM0Awj-Zr56E9MCZtZXRob2RebGlzdHxtZXRob2ReZ2V0fG1ldGhvZD1zdW1tYXJ5Jm1ldGhvZC9saXN0ZGF0YXN0b3Jl")
+	assert.NoError(t, err)
+
+	fresh := rune.MustGetRestrictedFromString("method^list|method^get|method=summary&method/listdatastore")
+
+	assert.Equal(t, restricted.String(), fresh.String())
 }

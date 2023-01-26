@@ -67,9 +67,17 @@ func MakeMasterRune(seedsecret []byte, uniqueid, version any, restrictions []Res
 
 // IsRuneAuthorized check whether rune is authorized
 func (r *MasterRune) IsRuneAuthorized(other *Rune) bool {
+	if other == nil {
+		return false
+	}
 	hasher := NewSha256()
 	hasher.Write([]byte(r.SeedSecret))
 	hasher.AddPadding()
+
+	if len(r.Restrictions) > len(other.Restrictions) {
+		// Master cannot have more restrictions
+		return false
+	}
 
 	for _, restriction := range other.Restrictions {
 		hasher.Write([]byte(restriction.String()))

@@ -16,10 +16,11 @@ func TestFromString(t *testing.T) {
 }
 
 func TestFromBase64(t *testing.T) {
-	for _, str := range []string{"N0cI__dxndWXnsh11WzSKG9tPPfsMXo7JWMqqyjsN7s=", "YDVzGiy7Aiy-tnZFqg-KJmU9jMRU4OCH1NGdKCuNpL09MQ==",
-		"RSB3NAfJZYZGMm_f_mhf-8PIY5oIDa5DELNxgwogXPE9Mi0x", "Ht9AaOKwseTgdeZnUcLT9cn8RRXRFPh15txuPmcE76lmMT0xfGYyPTMmZjN-djE="} {
+	for _, str := range []string{"N0cI__dxndWXnsh11WzSKG9tPPfsMXo7JWMqqyjsN7s", "YDVzGiy7Aiy-tnZFqg-KJmU9jMRU4OCH1NGdKCuNpL09MQ",
+		"RSB3NAfJZYZGMm_f_mhf-8PIY5oIDa5DELNxgwogXPE9Mi0x", "Ht9AaOKwseTgdeZnUcLT9cn8RRXRFPh15txuPmcE76lmMT0xfGYyPTMmZjN-djE", "EMXekLFLz2z-I7bEOBkfQmR5bR_V78iaf-L-LeFu8Mc9MA",
+		"hamQrEOb90nw5-BAZjrKCjIzniVfvi9nREJa_A6Tsx09MCZtZXRob2RebGlzdHxtZXRob2ReZ2V0fG1ldGhvZD1zdW1tYXJ5Jm1ldGhvZC9saXN0ZGF0YXN0b3JlJm1ldGhvZF5saXN0fG1ldGhvZF5nZXR8bWV0aG9kPXN1bW1hcnkmbWV0aG9kL2xpc3RkYXRhc3RvcmU"} {
 		r, err := FromBase64(str)
 		assert.NoError(t, err)
-		assert.Equal(t, str, r.ToBase64())
+		assert.Equal(t, str, r.ToBase64Internal(true))
 	}
 }

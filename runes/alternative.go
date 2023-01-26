@@ -148,8 +148,9 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 			}
 		}
 		if a.Cond != "!" {
-			return false, "is missing"
+			return false, fmt.Sprintf("%s is missing", a.Field)
 		}
+		return true, ""
 	}
 
 	switch a.Cond {
@@ -304,7 +305,11 @@ func lexoCmp(f, v any) int {
 	field := fmt.Sprintf("%v", f)
 	val := fmt.Sprintf("%v", v)
 
-	cmp := strings.Compare(field, val[0:len(field)])
+	length := len(field)
+	if len(val) < length {
+		length = len(val)
+	}
+	cmp := strings.Compare(field, val[0:length])
 
 	/* If val is same but longer, field is < */
 	if cmp == 0 && len(val) > len(field) {

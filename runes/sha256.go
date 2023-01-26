@@ -123,6 +123,16 @@ func (s *Sha256) SetMidState(state *MidState) error {
 	return nil
 }
 
+// SetLen sets the internal length
+func (s *Sha256) SetLen(len uint64) {
+	s.len = len
+}
+
+// GetLen gets the internal length
+func (s *Sha256) GetLen() uint64 {
+	return s.len
+}
+
 // AddPadding adds necessary padding at the end of a chunk
 func (s *Sha256) AddPadding() error {
 	l := s.len
@@ -140,14 +150,16 @@ func (s *Sha256) AddPadding() error {
 	// Length in bits.
 	l <<= 3
 	padlen := tmp[:t+8]
+
 	binary.BigEndian.PutUint64(padlen[t+0:], l)
+	//fmt.Printf("T is %d, len is %d, l is %d,  padlen %s len %d\n", t, s.len, l, hex.EncodeToString(padlen), len(padlen))
 
 	_, err := s.hasher.Write(padlen)
 	if err != nil {
 		return err
 	}
 
-	s.len = 0
+	s.len += uint64(len(padlen))
 
 	return nil
 }
@@ -155,7 +167,6 @@ func (s *Sha256) AddPadding() error {
 // GetSum returns the SHA-256 hash
 func (s *Sha256) GetSum() [OutputSize]byte {
 	ret := s.GetMidState().GetSum()
-	s.len = 0
 	return ret
 }
 

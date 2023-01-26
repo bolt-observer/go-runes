@@ -56,3 +56,75 @@ func TestEqual(t *testing.T) {
 	eval, _ = resp.Evaluate(map[string]any{"burek": "4"})
 	assert.Equal(t, false, eval)
 }
+
+func TestLexigraphicComparison(t *testing.T) {
+	resp, err := MakeAlternative("field", "{", "banana", false)
+	assert.NoError(t, err)
+
+	eval, _ := resp.Evaluate(map[string]any{"field": "banana"})
+	assert.Equal(t, false, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "aanana"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "banana1"})
+	assert.Equal(t, false, eval)
+
+	resp, err = MakeAlternative("field", "}", "banana", false)
+	assert.NoError(t, err)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "banana"})
+	assert.Equal(t, false, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "aanana"})
+	assert.Equal(t, false, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "banana1"})
+	assert.Equal(t, true, eval)
+}
+
+func TestBeginEnd(t *testing.T) {
+	resp, err := MakeAlternative("field", "^", "b", false)
+	assert.NoError(t, err)
+
+	eval, _ := resp.Evaluate(map[string]any{"field": "burek"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "b"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "c"})
+	assert.Equal(t, false, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "cekin"})
+	assert.Equal(t, false, eval)
+
+	resp, err = MakeAlternative("field", "$", "b", false)
+	assert.NoError(t, err)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "ab"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "abc"})
+	assert.Equal(t, false, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "b"})
+	assert.Equal(t, true, eval)
+}
+
+func TestStrange(t *testing.T) {
+	resp, err := MakeAlternative("field", "#", "b", false)
+	assert.NoError(t, err)
+
+	eval, _ := resp.Evaluate(map[string]any{"xx": "xx"})
+	assert.Equal(t, true, eval)
+
+	resp, err = MakeAlternative("field", "!", "foo", false)
+	assert.NoError(t, err)
+
+	eval, _ = resp.Evaluate(map[string]any{"xx": "xx"})
+	assert.Equal(t, true, eval)
+
+	eval, _ = resp.Evaluate(map[string]any{"field": "xx"})
+	assert.Equal(t, false, eval)
+}
