@@ -33,5 +33,4 @@ func TestGetUniqueID(t *testing.T) {
 	assert.Equal(t, 7, len(r.Restrictions))
 	assert.Equal(t, 3, r.GetUniqueID())
 	assert.Equal(t, 0, r.GetVersion())
-
 }

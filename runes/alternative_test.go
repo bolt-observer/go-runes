@@ -2,6 +2,7 @@ package runes
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -127,4 +128,13 @@ func TestStrange(t *testing.T) {
 
 	eval, _ = resp.Evaluate(map[string]any{"field": "xx"})
 	assert.Equal(t, false, eval)
+}
+
+func TestObtainValue(t *testing.T) {
+	resp, err := MakeAlternative("time", ">", time.Now().Add(-1*time.Minute).Unix(), false)
+	assert.NoError(t, err)
+
+	vals := map[string]any{"field": "xx", "time": ObtainValue(func() any { return time.Now().Unix() })}
+	eval, _ := resp.Evaluate(vals)
+	assert.Equal(t, true, eval)
 }

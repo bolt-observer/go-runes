@@ -108,5 +108,4 @@ func TestRealRune(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, restricted2.String(), fresh2.String())
-
 }

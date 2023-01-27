@@ -17,10 +17,8 @@ type Alternative struct {
 	Value any
 }
 
-// ValueObtainer is the interface for obtaining custom values
-type ValueObtainer interface {
-	GetValue() any
-}
+// ObtainValue is the signature of a function to get current value
+type ObtainValue func() any
 
 func containsPunctuation(s string) bool {
 	for _, c := range s {
@@ -159,10 +157,12 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 	}
 
 	actualValue := vals[a.Field]
-	obtainer, ok := actualValue.(ValueObtainer)
+	obtainer, ok := actualValue.(ObtainValue)
 	if ok {
-		actualValue = obtainer.GetValue()
+		actualValue = obtainer()
 	}
+
+	fmt.Printf("Actual value: %v\n", actualValue)
 
 	switch a.Cond {
 	case "!":
