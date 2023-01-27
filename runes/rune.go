@@ -266,9 +266,6 @@ func (r *Rune) getID() string {
 
 func (r *Rune) getIDPart(num int) int {
 	s := r.getID()
-
-	fmt.Printf("%s\n", s)
-
 	split := strings.Split(s, "-")
 	if num >= len(split) {
 		return -1

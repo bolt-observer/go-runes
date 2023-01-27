@@ -162,8 +162,6 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 		actualValue = obtainer()
 	}
 
-	fmt.Printf("Actual value: %v\n", actualValue)
-
 	switch a.Cond {
 	case "!":
 		return false, fmt.Sprintf("%s is present", a.Field)
