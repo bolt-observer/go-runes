@@ -1,20 +1,17 @@
-package example
+package main
 
 import (
 	"crypto/rand"
 	"fmt"
-	"testing"
 
 	runes "github.com/bolt-observer/go-runes/runes"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestUsage(t *testing.T) {
-
+func main() {
 	secret := make([]byte, 55)
 	_, err := rand.Read(secret)
 	if err != nil {
-		assert.NoError(t, err)
+		panic(err)
 	}
 
 	master := runes.MustMakeMasterRune(secret)

@@ -93,10 +93,8 @@ func UniqueID(uniqueID any, version any) (*Restriction, error) {
 		return nil, fmt.Errorf("hyphen not allowed in unique_id %s", id)
 	}
 
-	ver := ""
 	if version != nil {
-		ver = fmt.Sprintf("%v", version)
-		id += fmt.Sprintf("-%s", ver)
+		id = fmt.Sprintf("%s-%v", id, version)
 	}
 
 	alt, err := MakeAlternative("", "=", id, true)

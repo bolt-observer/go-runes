@@ -17,6 +17,9 @@ type Alternative struct {
 	Value any
 }
 
+// ObtainValue is the signature of a function to get current value
+type ObtainValue func() any
+
 func containsPunctuation(s string) bool {
 	for _, c := range s {
 		if isPunct(c) {
@@ -53,7 +56,7 @@ func MakeAlternative(field string, cond string, value any, allowIDField bool) (*
 	}
 
 	if !knownCondition(cond) {
-		return nil, fmt.Errorf("cond not valid")
+		return nil, fmt.Errorf("cond not valid %s", cond)
 	}
 
 	return &Alternative{Field: field, Cond: cond, Value: value}, nil
@@ -153,17 +156,23 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 		return true, ""
 	}
 
+	actualValue := vals[a.Field]
+	obtainer, ok := actualValue.(ObtainValue)
+	if ok {
+		actualValue = obtainer()
+	}
+
 	switch a.Cond {
 	case "!":
 		return false, fmt.Sprintf("%s is present", a.Field)
 	case "=":
-		ret, err := isEqual(vals[a.Field], a.Value)
+		ret, err := isEqual(actualValue, a.Value)
 		if ret && err == nil {
 			return true, ""
 		}
 		return false, fmt.Sprintf("!= %s", a.Value)
 	case "/":
-		ret, err := isEqual(vals[a.Field], a.Value)
+		ret, err := isEqual(actualValue, a.Value)
 		if !ret && err == nil {
 			return true, ""
 		}
@@ -171,7 +180,7 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 	case "^":
 		// starts with
 		val := fmt.Sprintf("%v", a.Value)
-		entry := fmt.Sprintf("%v", vals[a.Field])
+		entry := fmt.Sprintf("%v", actualValue)
 
 		if strings.HasPrefix(entry, val) {
 			return true, ""
@@ -180,7 +189,7 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 	case "$":
 		// ends with
 		val := fmt.Sprintf("%v", a.Value)
-		entry := fmt.Sprintf("%v", vals[a.Field])
+		entry := fmt.Sprintf("%v", actualValue)
 
 		if strings.HasSuffix(entry, val) {
 			return true, ""
@@ -189,36 +198,36 @@ func (a *Alternative) Evaluate(vals map[string]any) (bool, string) {
 	case "~":
 		// contains
 		val := fmt.Sprintf("%v", a.Value)
-		entry := fmt.Sprintf("%v", vals[a.Field])
+		entry := fmt.Sprintf("%v", actualValue)
 
 		if strings.Contains(entry, val) {
 			return true, ""
 		}
 		return false, fmt.Sprintf("does not contain %s", val)
 	case "<":
-		ret, err := isLower(vals[a.Field], a.Value)
+		ret, err := isLower(actualValue, a.Value)
 		if ret && err == nil {
 			return true, ""
 		}
 		return false, fmt.Sprintf(">= %v", a.Value)
 	case ">":
-		ret, err := isHigher(vals[a.Field], a.Value)
+		ret, err := isHigher(actualValue, a.Value)
 		if ret && err == nil {
 			return true, ""
 		}
 		return false, fmt.Sprintf("<= %v", a.Value)
 	case "{":
-		ret := lexoCmp(vals[a.Field], a.Value)
+		ret := lexoCmp(actualValue, a.Value)
 		if ret < 0 {
 			return true, ""
 		}
-		return false, fmt.Sprintf("is the same or ordered after %v", vals[a.Field])
+		return false, fmt.Sprintf("is the same or ordered after %v", actualValue)
 	case "}":
 		ret := lexoCmp(vals[a.Field], a.Value)
 		if ret > 0 {
 			return true, ""
 		}
-		return false, fmt.Sprintf("is the same or ordered before %v", vals[a.Field])
+		return false, fmt.Sprintf("is the same or ordered before %v", actualValue)
 	default:
 		return false, fmt.Sprintf("unhandled case: %v", a.Cond)
 	}
