@@ -212,12 +212,10 @@ func FromBase64(str string) (*Rune, error) {
 
 	data, err := base64.URLEncoding.DecodeString(str + addendum)
 	if err != nil {
-		fmt.Printf("A\n")
 		return nil, fmt.Errorf("%w", ErrInvalidRune)
 	}
 
 	if len(data) < 32 {
-		fmt.Printf("B\n")
 		return nil, fmt.Errorf("wrong data %w", ErrInvalidRune)
 	}
 
