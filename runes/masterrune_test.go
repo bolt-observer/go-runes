@@ -102,4 +102,11 @@ func TestRealRune(t *testing.T) {
 	fresh := rune.MustGetRestrictedFromString("method^list|method^get|method=summary&method/listdatastore")
 
 	assert.Equal(t, restricted.String(), fresh.String())
+
+	fresh2 := fresh.MustGetRestrictedFromString("method=listpeers")
+	restricted2, err := FromBase64("iZ7R2NBXDMx-Xp_csksTjuRsfsLYTqk0WCH-C1eFEA09MCZtZXRob2RebGlzdHxtZXRob2ReZ2V0fG1ldGhvZD1zdW1tYXJ5Jm1ldGhvZC9saXN0ZGF0YXN0b3JlJm1ldGhvZD1saXN0cGVlcnM=")
+	assert.NoError(t, err)
+
+	assert.Equal(t, restricted2.String(), fresh2.String())
+
 }

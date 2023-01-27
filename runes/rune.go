@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -244,4 +245,54 @@ func (r *Rune) Check(vals map[string]any) error {
 	}
 
 	return fmt.Errorf(msg)
+}
+
+func (r *Rune) getID() string {
+	if len(r.Restrictions) < 1 {
+		return ""
+	}
+	if len(r.Restrictions[0].Alternatives) < 1 {
+		return ""
+	}
+
+	// uniqueID restriction is the first one by definition
+	a := r.Restrictions[0].Alternatives[0]
+	if a.Field == "" && a.Cond == "=" {
+		return fmt.Sprintf("%v", a.Value)
+	}
+
+	return ""
+}
+
+func (r *Rune) getIDPart(num int) int {
+	s := r.getID()
+
+	fmt.Printf("%s\n", s)
+
+	split := strings.Split(s, "-")
+	if num >= len(split) {
+		return -1
+	}
+
+	data, err := strconv.Atoi(split[num])
+	if err != nil {
+		return -1
+	}
+
+	return data
+}
+
+// GetVersion gets the version of a rune or default (0)
+func (r *Rune) GetVersion() int {
+	result := r.getIDPart(1)
+	if result == -1 {
+		return 0
+	}
+
+	return result
+}
+
+// GetUniqueID gets the uniqueID of a rune or -1
+func (r *Rune) GetUniqueID() int {
+	return r.getIDPart(0)
 }
